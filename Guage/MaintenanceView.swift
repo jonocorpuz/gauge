@@ -65,7 +65,7 @@ struct MaintenanceView: View {
             }
             
             .sheet(isPresented: $showAddSheet) {
-                AddMaintenanceView(store: CarDataStore())
+                AddMaintenanceView(store: store)
             }
         }
     }

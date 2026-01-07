@@ -3,119 +3,87 @@ import PhotosUI // 📸 Required for the photo picker
 
 struct AddMaintenanceView: View {
     @ObservedObject var store: CarDataStore
-    
-    // Allows the sheet to close itself
     @Environment(\.dismiss) var dismiss
     
+    // 1. RE-ADD THE MISSING STATE VARIABLES (The Scratchpad)
     @State private var title: String = ""
-    @State private var date: Date = Date()
     @State private var mileage: String = ""
-    @State private var notes: String = ""
-    @State private var selectedType: EntryType = .maintenance
     @State private var interval: String = ""
-    @State private var selectedItem: PhotosPickerItem? = nil
-    @State private var selectedImage: Image? = nil
-    
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section("Details") {
-                    TextField("Title", text: $title)
-                    
-                    DatePicker("Date", selection: $date, displayedComponents: .date)
-                    
-                    TextField("Odometer", text: $mileage)
-                        .keyboardType(.numberPad)
-                }
-                
-                Section("Category") {
-                    Picker("Type", selection: $selectedType) {
-                        ForEach(EntryType.allCases, id: \.self) { type in
-                            Text(type.rawValue).tag(type)
-                        }
-                    }
-                    .pickerStyle(.segmented)
+    @State private var notes: String = ""
+    @State private var date: Date = Date()
+    @State private var selectedType: EntryType = .maintenance // Make sure EntryType is public in Models
 
-                    // Only ask for "Repeat Interval" if it is Maintenance
-                    if selectedType == .maintenance {
-                        HStack {
-                            Text("Repeat every:")
-                            TextField("e.g. 5000", text: $interval)
-                                .keyboardType(.numberPad)
-                                .multilineTextAlignment(.trailing)
-                            Text("km")
-                        }
-                    }
-                }
-                
-                Section("Notes") {
-                    ZStack(alignment: .topLeading) {
-                        if notes.isEmpty {
-                            Text("Add details, part numbers, or costs...")
-                                .foregroundStyle(.gray.opacity(0.5))
-                                .padding(.top, 8)
-                                .padding(.leading, 4)
+    var body: some View {
+        ZStack {
+            Color.white.ignoresSafeArea()
+            
+            ScrollView {
+                VStack(spacing: 24) {
+                    HStack{
+                        Button(action: {
+                            dismiss()
+                        }) {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 30))
+                                .foregroundStyle(Color.menuBlack)
                         }
                         
-                        TextEditor(text: $notes)
-                            .frame(height: 100)
+                        Spacer()
                     }
-                }
-                
-                Section("Photos") {
-                    PhotosPicker(selection: $selectedItem, matching: .images) {
-                        if let selectedImage {
-                            selectedImage
-                                .resizable()
-                                .scaledToFit()
-                                .frame(height: 200)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                                .frame(maxWidth: .infinity)
-                        } else {
-                            HStack {
-                                Image(systemName: "camera.fill")
-                                Text("Add Photo")
-                            }
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .foregroundStyle(.blue)
-                        }
+                    
+                    Text("New Item")
+                        .font(.system(size: 32, weight: .bold))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .foregroundStyle(Color.menuBlack)
+                        .padding(.top, 20)
+                    
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundStyle(Color.menuBlack)
+                    
+                    VStack(spacing: 16) {
+                        Text("Details")
+                            .font(.system(size: 16))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .foregroundStyle(Color.menuBlack)
+                            .padding(.top, 12)
+                        
+                        inputField(
+                            title: "Title",
+                            text: $title
+                        )
+                        
+                        inputField(
+                            title: "Odometer",
+                            text: $mileage,
+                            keyboardType: .numberPad
+                        )
+                        
+                        inputField(
+                            title: "Date",
+                            text: $interval,
+                            keyboardType: .numberPad
+                        )
                     }
-                }
-            }
-            .navigationTitle("New Record")
-            .navigationBarTitleDisplayMode(.inline)
-            
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
+                    
+                    // Save Button
+                    Button(action: saveRecord) {
+                        Text("Save Entry")
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 55)
+                            .background(Color.menuBlack)
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
                     }
+                    .padding(.top, 20)
                 }
-                
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Save") {
-                        saveRecord()
-                    }
-                    .fontWeight(.bold)
-                    .disabled(title.isEmpty)
-                }
-            }
-            .onChange(of: selectedItem) {
-                Task {
-                    if let data = try? await selectedItem?.loadTransferable(type: Data.self),
-                       let uiImage = UIImage(data: data) {
-                        selectedImage = Image(uiImage: uiImage)
-                    }
-                }
+                .padding(24)
             }
         }
     }
     
-    /// Creates new maintenance record, and dissmisses the view
-    ///
-    /// This function converts raw text strings into Integer values
-    /// - Note: If the mileage or interval strings are non-numeric, they default to 0
-    /// - Note: This function dissmisses sheet after saving object
+    // 3. NOW THIS FUNCTION WORKS AGAIN
     func saveRecord() {
         let mileageInt = Int(mileage) ?? 0
         let intervalInt = Int(interval) ?? 0
@@ -130,8 +98,26 @@ struct AddMaintenanceView: View {
         )
         
         store.car.maintenanceItems.append(newItem)
-        
         dismiss()
+    }
+}
+
+struct inputField: View {
+    let title: String
+    @Binding var text: String
+    var keyboardType: UIKeyboardType = .default
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            TextField(title, text: $text)
+                .padding()
+                .background(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.menuWhite,lineWidth: 1))
+                .keyboardType(keyboardType)
+                
+        }
     }
 }
 
