@@ -80,6 +80,10 @@ struct HomeView: View {
     }
 }
 
+/// Standardized circular button style for main dashboard
+///
+/// This style applies a circular clip shape with dimension 70x70, and a "press" animation
+/// that inverts the circle colour and icon colour when tapped by the user
 struct DashboardButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label

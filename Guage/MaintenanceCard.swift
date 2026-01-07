@@ -10,6 +10,11 @@ import SwiftUI
 struct MaintenanceCard: View {
     let title: String
     let kilometers: Int
+    
+    /// Display status of the item
+    ///
+    /// Expected values are: "Overdue Maintenance", "Upcoming Maintenance", or "Modifications"
+    /// any other string defaults to '.menuBlack'
     let status: String
     
     var statusColor: Color {

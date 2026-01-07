@@ -8,6 +8,12 @@
 import SwiftUI
 import Combine
 
+/// Primary data source for application
+///
+/// This class manages the state of the user's 'Car' and its 'MaintenanceItems'
+/// It conforms to ObservableObject so that views can reactively update when data changes
+///
+/// - This store is meant to be injected into the view heirachy at the root then passed down via '@ObservableObject'
 class CarDataStore: ObservableObject {
     @Published var car: Car // Reload the UI when the variable changes
     

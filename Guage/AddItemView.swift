@@ -111,6 +111,11 @@ struct AddMaintenanceView: View {
         }
     }
     
+    /// Creates new maintenance record, and dissmisses the view
+    ///
+    /// This function converts raw text strings into Integer values
+    /// - Note: If the mileage or interval strings are non-numeric, they default to 0
+    /// - Note: This function dissmisses sheet after saving object
     func saveRecord() {
         let mileageInt = Int(mileage) ?? 0
         let intervalInt = Int(interval) ?? 0

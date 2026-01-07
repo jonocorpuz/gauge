@@ -15,16 +15,21 @@ enum EntryType: String, CaseIterable, Codable {
 struct MaintenanceItem: Identifiable, Codable {
     let id: UUID
     
-    var title: String               // item name
-    var notes: String?              // item notes
+    var title: String
+    var notes: String?
     var type: EntryType = .maintenance
     var isCompleted: Bool = false;
     
-    // Tracked items
-    var intervalMileage: Int        // interval of item
-    var lastServiceMileage: Int?    // last service mileage of item
-    var lastServiceDate: Int?        // last service date of item
-    var nextDueMileage: Int? {      // next service mileage of item
+    var intervalMileage: Int
+    var lastServiceMileage: Int?
+    var lastServiceDate: Int?
+    
+    /// Calculates the odometer reading when this service is due
+    ///
+    /// This value is calculated by adding 'intervalMileage' and 'lastServiceMileage'
+    ///
+    /// - Returns: Estimated mileage for next service or 'nil' if item has never been serviced
+    var nextDueMileage: Int? {
         if let last = lastServiceMileage {
             return last + intervalMileage
         }
