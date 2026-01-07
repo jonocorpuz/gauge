@@ -38,11 +38,19 @@ struct MaintenanceItem: Identifiable, Codable {
     }
     
     // Initializer
-    init (id: UUID = UUID(), title: String, notes: String, isCompleted: Bool = false,
-          intervalMileage: Int, lastServiceMileage: Int? = nil, lastServiceDate: Int? = nil) {
+    init (id: UUID = UUID(),
+          title: String,
+          notes: String,
+          type: EntryType = .maintenance,
+          isCompleted: Bool = false,
+          intervalMileage: Int,
+          lastServiceMileage: Int? = nil,
+          lastServiceDate: Int? = nil) {
+        
         self.id = id
         self.title = title
         self.notes = notes
+        self.type = type
         self.isCompleted = isCompleted
         self.intervalMileage = intervalMileage
         self.lastServiceMileage = lastServiceMileage
