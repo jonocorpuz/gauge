@@ -6,56 +6,67 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
-
+    // 1. Create the Data Store ONCE here at the root level
+    @StateObject var store = CarDataStore()
+    @State var selectedTab: Int = 0
+    
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-                    }
-                }
-                .onDelete(perform: deleteItems)
+        ZStack(alignment: .bottom) {
+            TabView(selection: $selectedTab) {
+                HomeView(store: store)
+                    .tag(0)
+                
+                MaintenanceView(store: store)
+                    .tag(1)
             }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
-            }
-        } detail: {
-            Text("Select an item")
+            .toolbar(.hidden, for: .tabBar)
+            
+            CustomTabBar(selectedTab: $selectedTab)
         }
+        .ignoresSafeArea(.keyboard)
     }
+}
 
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
+struct CustomTabBar: View {
+    @Binding var selectedTab: Int
+    
+    var body: some View {
+        HStack {
+            TabBarButton(icon: "steeringwheel", isActive: selectedTab == 0) {
+                selectedTab = 0
             }
+            
+            TabBarButton(icon: "wrench.and.screwdriver.fill", isActive: selectedTab == 1) {
+                selectedTab = 1
+            }
+        }
+        .padding(.top, 20)
+        .padding(.bottom, 20)
+        .padding(.horizontal, 40)
+        .frame(maxWidth: .infinity)
+        .background(Color.black)
+        .ignoresSafeArea()
+    }
+}
+
+struct TabBarButton: View {
+    let icon: String
+    let isActive: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: icon)
+            }
+            .foregroundStyle(isActive ? .white: .gray)
+            .frame(maxWidth: .infinity)
         }
     }
 }
 
 #Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
 }
