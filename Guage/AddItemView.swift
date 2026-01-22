@@ -1,7 +1,14 @@
+//
+//  UpdateMileageView.swift
+//  Guage
+//
+//  Created by Jonathan Corpuz on 2026-01-07.
+//
+
 import SwiftUI
 import PhotosUI
 
-struct AddMaintenanceView: View {
+struct AddItemView: View {
     @ObservedObject var store: CarDataStore
     @Environment(\.dismiss) var dismiss
     
@@ -11,8 +18,7 @@ struct AddMaintenanceView: View {
     @State private var title: String = ""
     @State private var mileage: String = ""
     @State private var interval: String = ""
-    @State private var notes: String = ""
-    @State private var date: Date = Date()
+    @State private var date: Date? = nil
     @State private var selectedType: EntryType = .maintenance
 
     var body: some View {
@@ -48,6 +54,12 @@ struct AddMaintenanceView: View {
                             placeholder: "Title",
                             text: $title
                         )
+                        .onChange(of: title) {
+                            if let existing = store.car.maintenanceItems.first(where: { $0.title.lowercased() == title.lowercased() }) {
+                                interval = "\(existing.intervalMileage)"
+                                selectedType = existing.type
+                            }
+                        }
                         
                         HStack {
                             inputField(
@@ -56,18 +68,7 @@ struct AddMaintenanceView: View {
                                 keyboardType: .numberPad
                             )
                             
-                            VStack(alignment: .leading, spacing: 8) {
-                                DatePicker("", selection: $date, displayedComponents: .date)
-                                    .labelsHidden()
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                    .background(Color.white)
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Color.menuWhite, lineWidth: 1)
-                                    )
-                            }
-                            .frame(height: 50)
+                            DateField(date: $date)
                         }
                     }
                     
@@ -133,121 +134,29 @@ struct AddMaintenanceView: View {
                 .padding(24)
             }
         }
+        .onAppear {
+            mileage = "\(store.car.currentMileage)"
+            date = Date()
+        }
     }
     
     func saveRecord() {
-        let mileageInt = Int(mileage) ?? 0
-        let dateInt = Int(date.timeIntervalSince1970)
-        
-        // Logic: Force interval to 0 if it's a Modification
         let intervalInt = (selectedType == .maintenance) ? (Int(interval) ?? 0) : 0
+        let mileageInt = Int(mileage) ?? 0
+        let entryDate = date ?? Date()
 
-        let newItem = MaintenanceItem(
+        store.addOrUpdateMaintenanceItem(
             title: title,
-            notes: notes,
-            type: selectedType,
-            intervalMileage: intervalInt,
-            lastServiceMileage: mileageInt,
-            lastServiceDate: dateInt
+            date: entryDate,
+            mileage: mileageInt,
+            interval: intervalInt,
+            type: selectedType
         )
         
-        store.car.maintenanceItems.append(newItem)
         dismiss()
     }
 }
 
-struct inputField: View {
-    let placeholder: String
-    @Binding var text: String
-    var keyboardType: UIKeyboardType = .default
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            TextField(placeholder, text: $text)
-                .padding()
-                .frame(height: 50)
-                .background(Color.white)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.menuWhite, lineWidth: 1)
-                )
-                .keyboardType(keyboardType)
-        }
-    }
-}
-
-struct TypeButton: View {
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 14, weight: .bold))
-                .frame(maxWidth: .infinity)
-                .frame(height: 50)
-                .background(isSelected ? Color.menuBlack : Color.white)
-                .foregroundStyle(isSelected ? .white : Color.menuBlack)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.menuWhite, lineWidth: isSelected ? 0 : 1)
-                )
-        }
-    }
-}
-
-struct PhotoInputBox: View {
-    @Binding var selectedItem: PhotosPickerItem?
-    @Binding var selectedImage: Image?
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            PhotosPicker(selection: $selectedItem, matching: .images) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.white)
-                        .frame(height: 150)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.menuWhite, lineWidth: 1)
-                        )
-                    
-                    if let selectedImage {
-                        selectedImage
-                            .resizable()
-                            .scaledToFill()
-                            .frame(height: 150)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
-                    
-                    else {
-                        VStack(spacing: 8) {
-                            Image(systemName: "camera.fill")
-                                .font(.system(size: 30))
-                                .foregroundStyle(Color.menuBlack)
-                            
-                            Text("Tap to add photo")
-                                .font(.system(size: 14))
-                                .foregroundStyle(Color.gray)
-                        }
-                    }
-                }
-            }
-            .onChange(of: selectedItem) {
-                Task {
-                    if let data = try? await selectedItem?.loadTransferable(type: Data.self),
-                       let uiImage = UIImage(data: data) {
-                        selectedImage = Image(uiImage: uiImage)
-                    }
-                }
-            }
-        }
-    }
-}
-
 #Preview {
-    AddMaintenanceView(store: CarDataStore())
+    AddItemView(store: CarDataStore())
 }

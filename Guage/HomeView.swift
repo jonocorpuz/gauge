@@ -12,20 +12,23 @@ struct HomeView: View {
     @ObservedObject var store: CarDataStore
     
     @State private var showAddSheet = false
+    @State private var showUpdateKmSheet = false
+    @State private var showDynoSheet = false
     
     var body: some View {
         NavigationStack {
             ZStack(alignment: .topTrailing) {
-                // Top navigation bar
-                Button(action: {
-                    print("Settings Tapped")
-                }) {
-                    Image(systemName: "gearshape.fill")
-                        .font(.title2)
-                        .foregroundStyle(Color.menuBlack)
-                        .padding()
+                HStack {
+                    NavigationLink {
+                        SettingsView(store: CarDataStore())
+                    } label: {
+                        Image(systemName: "gearshape.fill")
+                            .font(.system(size: 24))
+                            .foregroundStyle(Color.menuBlack)
+                    }
                 }
-                .padding(.trailing, 20) // Fine-tune position from edge
+                .padding(.trailing, 40)
+                .padding(.top, 20)
                 
                 VStack(spacing: 0) {
                     
@@ -44,7 +47,7 @@ struct HomeView: View {
 
                     Spacer()
                     
-                    Image("iteshome")
+                    Image("ls600h")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .padding(30)
@@ -53,7 +56,9 @@ struct HomeView: View {
                     Spacer()
                     
                     HStack(spacing: 20) {
-                        Button(action: { print("Update kms")}) {
+                        Button(action: {
+                            showUpdateKmSheet = true
+                        }) {
                             Image(systemName: "speedometer")
                         }
                         
@@ -63,7 +68,9 @@ struct HomeView: View {
                             Image(systemName: "plus.app.fill")
                         }
                         
-                        Button(action: { print("Status")}) {
+                        Button(action: {
+                            showDynoSheet = true
+                        }) {
                             Image(systemName: "checkmark.shield.fill")
                         }
                         
@@ -71,10 +78,20 @@ struct HomeView: View {
                     .buttonStyle(DashboardButtonStyle())
                     .padding(.bottom, 100)
                 }
+                
+                Text(store.connectionStatus)
+                    .font(.caption)
+                    .foregroundStyle(.gray)
+                    .padding(.bottom, 20)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             
             .sheet(isPresented: $showAddSheet) {
-                AddMaintenanceView(store: CarDataStore())
+                AddItemView(store: store)
+            }
+            
+            .sheet(isPresented: $showUpdateKmSheet) {
+                UpdateMileageView(store: store)
             }
         }
     }

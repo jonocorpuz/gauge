@@ -18,4 +18,8 @@ extension Color {
     ///
     /// - Note: Matches Hex #E5E5E5
     static let menuWhite = Color(red: 229/255, green: 229/255, blue: 229/255)
+    
+    static let menuGreenAccent = Color(red: 16/255, green: 181/255, blue: 118/255)
+    
+    static let menuRedAccent = Color(red: 217/255, green: 98/255, blue: 82/255)
 }

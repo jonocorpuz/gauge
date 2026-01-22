@@ -11,6 +11,7 @@ struct MaintenanceView: View {
     @ObservedObject var store: CarDataStore
     
     @State private var showAddSheet = false
+    @State private var selectedItem: MaintenanceItem?
     
     var body: some View {
         ZStack() {
@@ -46,18 +47,23 @@ struct MaintenanceView: View {
                 }
                 .padding(.horizontal, 24)
                 .padding(.bottom, 40)
-                .padding(.top, 160)
+                .padding(.top, 120)
                 .background(Color.white)
                 .clipShape(RoundedRectangle(cornerRadius: 30))
                 .ignoresSafeArea()
                 
                 ScrollView {
                     VStack(spacing: 16) {
-                        ForEach(store.car.maintenanceItems) { item in MaintenanceCard(
-                            title: item.title,
-                            kilometers: item.intervalMileage,
-                            status:item.type.rawValue
-                            )
+                        ForEach(store.car.maintenanceItems) { item in
+                            Button(action: {
+                                selectedItem = item
+                            }) {
+                                MaintenanceCard(
+                                    title: item.title,
+                                    kilometers: item.lastServiceMileage ?? 0,
+                                    status: item.type == .modification ? "Modifications" : "Maintenance"
+                                )
+                            }
                         }
                     }
                     .padding(.horizontal, 20)
@@ -65,7 +71,12 @@ struct MaintenanceView: View {
             }
             
             .sheet(isPresented: $showAddSheet) {
-                AddMaintenanceView(store: store)
+                AddItemView(store: store)
+            }
+            
+            .sheet(item: $selectedItem) { item in
+                CardDetailView(item: item, store: store)
+                    .presentationDetents([.large])
             }
         }
     }

@@ -6,6 +6,13 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		FB3BB4782F20836E00B5A768 /* AWSDynamoDB in Frameworks */ = {isa = PBXBuildFile; productRef = FB3BB4772F20836E00B5A768 /* AWSDynamoDB */; };
+		FB3BB47A2F20838200B5A768 /* AWSClientRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = FB3BB4792F20838200B5A768 /* AWSClientRuntime */; };
+		FB3BB47C2F20838B00B5A768 /* AWSCognitoIdentity in Frameworks */ = {isa = PBXBuildFile; productRef = FB3BB47B2F20838B00B5A768 /* AWSCognitoIdentity */; };
+		FB3BB4A72F2154E500B5A768 /* Smithy in Frameworks */ = {isa = PBXBuildFile; productRef = FB3BB4A62F2154E500B5A768 /* Smithy */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		FB8A44F22EEBB18100E28778 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +59,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FB3BB4A72F2154E500B5A768 /* Smithy in Frameworks */,
+				FB3BB47C2F20838B00B5A768 /* AWSCognitoIdentity in Frameworks */,
+				FB3BB47A2F20838200B5A768 /* AWSClientRuntime in Frameworks */,
+				FB3BB4782F20836E00B5A768 /* AWSDynamoDB in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -72,12 +83,20 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		FB3BB4762F20836E00B5A768 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		FB8A44D92EEBB17E00E28778 = {
 			isa = PBXGroup;
 			children = (
 				FB8A44E42EEBB17E00E28778 /* Guage */,
 				FB8A44F42EEBB18100E28778 /* GuageTests */,
 				FB8A44FE2EEBB18100E28778 /* GuageUITests */,
+				FB3BB4762F20836E00B5A768 /* Frameworks */,
 				FB8A44E32EEBB17E00E28778 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -112,6 +131,10 @@
 			);
 			name = Guage;
 			packageProductDependencies = (
+				FB3BB4772F20836E00B5A768 /* AWSDynamoDB */,
+				FB3BB4792F20838200B5A768 /* AWSClientRuntime */,
+				FB3BB47B2F20838B00B5A768 /* AWSCognitoIdentity */,
+				FB3BB4A62F2154E500B5A768 /* Smithy */,
 			);
 			productName = Guage;
 			productReference = FB8A44E22EEBB17E00E28778 /* Guage.app */;
@@ -195,6 +218,10 @@
 			);
 			mainGroup = FB8A44D92EEBB17E00E28778;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				FB3BB4752F20826000B5A768 /* XCRemoteSwiftPackageReference "aws-sdk-swift" */,
+				FB3BB4A52F2153F300B5A768 /* XCRemoteSwiftPackageReference "smithy-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = FB8A44E32EEBB17E00E28778 /* Products */;
 			projectDirPath = "";
@@ -570,6 +597,48 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		FB3BB4752F20826000B5A768 /* XCRemoteSwiftPackageReference "aws-sdk-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/awslabs/aws-sdk-swift?refid=9be0bd92-5325-400c-be5b-364a996d91f3";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.6.37;
+			};
+		};
+		FB3BB4A52F2153F300B5A768 /* XCRemoteSwiftPackageReference "smithy-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/awslabs/smithy-swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.179.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		FB3BB4772F20836E00B5A768 /* AWSDynamoDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FB3BB4752F20826000B5A768 /* XCRemoteSwiftPackageReference "aws-sdk-swift" */;
+			productName = AWSDynamoDB;
+		};
+		FB3BB4792F20838200B5A768 /* AWSClientRuntime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FB3BB4752F20826000B5A768 /* XCRemoteSwiftPackageReference "aws-sdk-swift" */;
+			productName = AWSClientRuntime;
+		};
+		FB3BB47B2F20838B00B5A768 /* AWSCognitoIdentity */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FB3BB4752F20826000B5A768 /* XCRemoteSwiftPackageReference "aws-sdk-swift" */;
+			productName = AWSCognitoIdentity;
+		};
+		FB3BB4A62F2154E500B5A768 /* Smithy */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FB3BB4A52F2153F300B5A768 /* XCRemoteSwiftPackageReference "smithy-swift" */;
+			productName = Smithy;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = FB8A44DA2EEBB17E00E28778 /* Project object */;
 }

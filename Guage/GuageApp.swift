@@ -10,6 +10,10 @@ import SwiftData
 
 @main
 struct GuageApp: App {
+    init() {
+            _ = AWSManager.shared
+        }
+    
     var body: some Scene {
         WindowGroup {
             ContentView()

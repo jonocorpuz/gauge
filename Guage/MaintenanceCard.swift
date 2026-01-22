@@ -19,10 +19,7 @@ struct MaintenanceCard: View {
     
     var statusColor: Color {
         switch status {
-        case "Overdue Maintenance":
-            return .red
-            
-        case "Upcoming Maintenance":
+        case "Maintenance":
             return .yellow
             
         case "Modifications":
