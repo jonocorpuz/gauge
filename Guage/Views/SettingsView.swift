@@ -59,9 +59,9 @@ struct SettingsView: View {
                             .foregroundStyle(Color.menuBlack)
                             .padding(.top, 12)
                         VStack(spacing: 12) {
-                            inputField(placeholder: "Year", text: $year)
-                            inputField(placeholder: "Make", text: $make)
-                            inputField(placeholder: "Model", text: $model)
+                            InputField(placeholder: "Year", text: $year)
+                            InputField(placeholder: "Make", text: $make)
+                            InputField(placeholder: "Model", text: $model)
                         }
                     }
 
@@ -124,9 +124,9 @@ struct SettingsView: View {
             }
         }
         .onAppear {
-            year = store.car.year
-            make = store.car.make
-            model = store.car.model
+            year = store.carInfo.year
+            make = store.carInfo.make
+            model = store.carInfo.model
         }
     }
 }

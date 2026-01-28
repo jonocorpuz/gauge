@@ -37,7 +37,7 @@ struct UpdateMileageView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .foregroundStyle(Color.menuBlack)
                         
-                        inputField(
+                        InputField(
                             placeholder: "Odometer",
                             text: $mileage
                         )
@@ -62,7 +62,7 @@ struct UpdateMileageView: View {
     }
     
     func saveRecord() {
-        let newMileage = Int(mileage) ?? store.car.currentMileage
+        let newMileage = Int(mileage) ?? store.carInfo.currentMileage
         let entryDate = date ?? Date()
         
         store.addMileageEntry(

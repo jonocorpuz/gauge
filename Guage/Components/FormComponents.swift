@@ -1,14 +1,8 @@
-//
-//  FormComponents.swift
-//  Guage
-//
-//  Created by Jonathan Corpuz on 2026-01-07.
-//
-
 import SwiftUI
 import PhotosUI
 
-struct inputField: View {
+/// Standard custom text entry field with rounded border
+struct InputField: View {
     let placeholder: String
     @Binding var text: String
     var height: CGFloat = 50
@@ -30,6 +24,7 @@ struct inputField: View {
     }
 }
 
+/// Toggle button used for selecting mutually exclusive options
 struct TypeButton: View {
     let title: String
     let isSelected: Bool
@@ -52,6 +47,7 @@ struct TypeButton: View {
     }
 }
 
+/// Custom box for date
 struct DateField: View {
     @Binding var date: Date?
     
@@ -59,13 +55,14 @@ struct DateField: View {
     
     var body: some View {
             ZStack(alignment: .leading) {
+                // Custom Visual Layer
                 HStack {
                     if let validDate = date {
-                        // State: Date Selected
                         Text(validDate.formatted(date: .numeric, time: .omitted))
                             .foregroundStyle(Color.menuBlack)
-                    } else {
-                        // State: Placeholder
+                    }
+                    
+                    else {
                         Text("Date")
                             .foregroundStyle(Color.gray.opacity(0.5))
                     }
@@ -80,6 +77,7 @@ struct DateField: View {
                         .stroke(Color.gray.opacity(0.3), lineWidth: 1)
                 )
                 
+                // Invisible date picker
                 DatePicker("", selection: $internalDate, displayedComponents: .date)
                     .labelsHidden()
                     .colorMultiply(.clear)
@@ -88,9 +86,17 @@ struct DateField: View {
                         date = internalDate
                 }
         }
+        
+        // Ensure internal and external dates are matching
+        .onAppear {
+            if let existingDate = date {
+                internalDate = existingDate
+            }
+        }
     }
 }
 
+/// Custom photo input box
 struct PhotoInputBox: View {
     @Binding var selectedItem: PhotosPickerItem?
     @Binding var selectedImage: Image?
@@ -140,6 +146,7 @@ struct PhotoInputBox: View {
     }
 }
 
+/// Custom toggle
 struct CustomToggle: View {
     @Binding var isOn: Bool
     

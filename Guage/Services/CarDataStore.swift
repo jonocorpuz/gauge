@@ -10,29 +10,23 @@ import Combine
 
 /// Primary data source for application
 ///
-/// This class manages the state of the user's 'Car' and its 'MaintenanceItems'
+/// This class manages the state of the user's 'CarInfo' and its 'MaintenanceItems'
 /// It conforms to ObservableObject so that views can reactively update when data changes
 ///
 /// - This store is meant to be injected into the view heirachy at the root then passed down via '@ObservableObject'
 class CarDataStore: ObservableObject {
-    @Published var car: Car // Reload the UI when the variable changes
+    @Published var carInfo: CarInfo // Metadata
+    @Published var maintenanceItems: [MaintenanceItem] = [] // Items
+    
     @Published var connectionStatus: String = "Connecting to AWS..."
     
     init() {
-        let mySpecs = PerformanceProfile(
-            horsepower: 438,
-            torque: 385,
-            zeroToSixty: 5.5,
-            efficiency: 11.2
-        )
-        
-        self.car = Car(
+        self.carInfo = CarInfo(
             year: "2023",
             make: "BMW",
             model: "M340i",
             currentMileage: 12154,
-            maintenanceItems: [], // Start empty, load from AWS
-            specs: mySpecs
+            mileageHistory: []
         )
         
         // Test AWS Connection & Fetch Data on Launch
@@ -43,7 +37,7 @@ class CarDataStore: ObservableObject {
                 
                 // 2. Fetch Items
                 let items = try await AWSManager.shared.fetchAll()
-                self.car.maintenanceItems = items
+                self.maintenanceItems = items
                 
                 self.connectionStatus = "✅ Loaded \(items.count) items from AWS"
                 
@@ -60,16 +54,16 @@ class CarDataStore: ObservableObject {
     func addMileageEntry(date: Date, miles: Int) {
         let newEntry = MileageEntry(date: date, mileage: miles)
         
-        car.milegeHistory.append(newEntry)
+        carInfo.mileageHistory.append(newEntry)
         
-        car.currentMileage = miles
+        carInfo.currentMileage = miles
     }
     
     func addOrUpdateMaintenanceItem(title: String, date: Date, mileage: Int, interval: Int, type: EntryType) {
         // Case insensitive match
-        if let index = car.maintenanceItems.firstIndex(where: { $0.title.lowercased() == title.lowercased() }) {
+        if let index = maintenanceItems.firstIndex(where: { $0.title.lowercased() == title.lowercased() }) {
             // Update existing
-            var item = car.maintenanceItems[index]
+            var item = maintenanceItems[index]
             
             // Add history event
             let event = MaintenanceEvent(date: date, mileage: mileage)
@@ -81,7 +75,7 @@ class CarDataStore: ObservableObject {
             }
             
             // Save back
-            car.maintenanceItems[index] = item
+            maintenanceItems[index] = item
         } else {
             // Create new
             let initialEvent = MaintenanceEvent(date: date, mileage: mileage)
@@ -93,11 +87,11 @@ class CarDataStore: ObservableObject {
                 history: [initialEvent]
             )
             
-            car.maintenanceItems.append(newItem)
+            maintenanceItems.append(newItem)
         }
         
         // Synced to AWS
-        if let savedItem = (car.maintenanceItems.first { $0.title.lowercased() == title.lowercased() }) {
+        if let savedItem = (maintenanceItems.first { $0.title.lowercased() == title.lowercased() }) {
              Task {
                  @MainActor in
                  self.connectionStatus = "Saving \(savedItem.title) to AWS..."
@@ -124,8 +118,8 @@ class CarDataStore: ObservableObject {
                 
                 // Clear local memory
                 print("DEBUG: Clearing local memory")
-                self.car.maintenanceItems.removeAll()
-                self.car.milegeHistory.removeAll()
+                self.maintenanceItems.removeAll()
+                self.carInfo.mileageHistory.removeAll()
                 // Reset to default (or maybe we should trigger onboarding again? For now just clear items)
                 
                 self.connectionStatus = "✅ Data Wiped"
@@ -138,4 +132,3 @@ class CarDataStore: ObservableObject {
         }
     }
 }
-

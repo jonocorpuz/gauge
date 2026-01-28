@@ -6,7 +6,7 @@ struct CardDetailView: View {
     @Environment(\.dismiss) var dismiss
     
     private func computeProgress() -> (progress: Double, label: String, value: String, targetText: String) {
-        let current = Double(store.car.currentMileage)
+        let current = Double(store.carInfo.currentMileage)
         let last = Double(item.lastServiceMileage ?? 0)
         let interval = Double(item.intervalMileage)
         let target = last + interval

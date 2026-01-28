@@ -35,11 +35,11 @@ struct HomeView: View {
                     Spacer(minLength: 100)
                     
                     VStack(spacing: 1) {
-                        Text("\(store.car.make) \(store.car.model)")
+                        Text("\(store.carInfo.make) \(store.carInfo.model)")
                             .font(.system(size: 42, weight: .bold, design: .default))
                             .foregroundStyle(Color.menuBlack)
                         
-                        Text("\(store.car.currentMileage)km")
+                        Text("\(store.carInfo.currentMileage)km")
                             .font(.system(size: 14, design: .default))
                             .foregroundStyle(.secondary)
                             .monospacedDigit()

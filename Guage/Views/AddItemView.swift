@@ -50,19 +50,19 @@ struct AddItemView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .foregroundStyle(Color.menuBlack)
                         
-                        inputField(
+                        InputField(
                             placeholder: "Title",
                             text: $title
                         )
                         .onChange(of: title) {
-                            if let existing = store.car.maintenanceItems.first(where: { $0.title.lowercased() == title.lowercased() }) {
+                            if let existing = store.maintenanceItems.first(where: { $0.title.lowercased() == title.lowercased() }) {
                                 interval = "\(existing.intervalMileage)"
                                 selectedType = existing.type
                             }
                         }
                         
                         HStack {
-                            inputField(
+                            InputField(
                                 placeholder: "Odometer",
                                 text: $mileage,
                                 keyboardType: .numberPad
@@ -98,7 +98,7 @@ struct AddItemView: View {
                         }
                         
                         if selectedType == .maintenance {
-                            inputField(
+                            InputField(
                                 placeholder: "Service Interval",
                                 text: $interval,
                                 keyboardType: .numberPad
@@ -135,7 +135,7 @@ struct AddItemView: View {
             }
         }
         .onAppear {
-            mileage = "\(store.car.currentMileage)"
+            mileage = "\(store.carInfo.currentMileage)"
             date = Date()
         }
     }

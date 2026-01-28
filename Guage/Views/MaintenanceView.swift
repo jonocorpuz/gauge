@@ -31,9 +31,9 @@ struct MaintenanceView: View {
                             .foregroundStyle(.secondary)
                     }
                     
-                    Button(action: {
+                    Button {
                         showAddSheet = true
-                    }) {
+                    } label: {
                         HStack {
                             Text("Record Item")
                                 .fontWeight(.bold)
@@ -54,14 +54,13 @@ struct MaintenanceView: View {
                 
                 ScrollView {
                     VStack(spacing: 16) {
-                        ForEach(store.car.maintenanceItems) { item in
-                            Button(action: {
+                        ForEach(store.maintenanceItems) { item in
+                            Button {
                                 selectedItem = item
-                            }) {
+                            } label: {
                                 MaintenanceCard(
-                                    title: item.title,
-                                    kilometers: item.lastServiceMileage ?? 0,
-                                    status: item.type == .modification ? "Modifications" : "Maintenance"
+                                    item: item,
+                                    currentOdometer: store.carInfo.currentMileage
                                 )
                             }
                         }
