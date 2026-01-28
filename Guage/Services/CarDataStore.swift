@@ -113,5 +113,29 @@ class CarDataStore: ObservableObject {
              }
         }
     }
+    
+    func resetAllData() {
+        Task {
+            @MainActor in
+            self.connectionStatus = "⚠️ Nuking all data..."
+            do {
+                print("DEBUG: Calling AWSManager.nukeUserData")
+                try await AWSManager.shared.nukeUserData()
+                
+                // Clear local memory
+                print("DEBUG: Clearing local memory")
+                self.car.maintenanceItems.removeAll()
+                self.car.milegeHistory.removeAll()
+                // Reset to default (or maybe we should trigger onboarding again? For now just clear items)
+                
+                self.connectionStatus = "✅ Data Wiped"
+                try? await Task.sleep(nanoseconds: 2 * 1_000_000_000)
+                self.connectionStatus = "✅ AWS Connected"
+            } catch {
+                print("DEBUG: Reset failed with error: \(error)")
+                self.connectionStatus = "❌ Reset Failed: \(error.localizedDescription)"
+            }
+        }
+    }
 }
 

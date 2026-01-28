@@ -6,11 +6,6 @@ import SmithyIdentity
 import SmithyHTTPAPI
 import Smithy
 
-private let myRegion = "us-east-2"
-private let myPoolId = "us-east-2:c3a6f0e5-336c-4ed9-be3f-0feddc1fa10e"
-private let myTableName = "GuageUserData"
-
-private let conif = AppCon
 
 /// Credential provider for authentication via AWS Cognito Identity Pools
 ///
@@ -26,10 +21,14 @@ final class CognitoIdentityProvider: AWSCredentialIdentityResolver, @unchecked S
     ///
     /// Throws: error if 'CognitoIdentityProvider' fails
     /// ex. if given poolId/client is invalid
+    /// Initializes identity provider
+    ///
+    /// Throws: error if 'CognitoIdentityProvider' fails
+    /// ex. if given poolId/client is invalid
     init() throws {
-        let config = try CognitoIdentityClient.CognitoIdentityClientConfiguration(region: myRegion)
+        let config = try CognitoIdentityClient.CognitoIdentityClientConfiguration(region: Secrets.awsRegion)
         self.client = CognitoIdentityClient(config: config)
-        self.poolId = myPoolId
+        self.poolId = Secrets.cognitoPoolId
     }
 
     /// Retrieves valid AWS credentials for current session
@@ -94,7 +93,7 @@ class AWSManager: @unchecked Sendable {
         
         else {
             let provider = try CognitoIdentityProvider()
-            let config = try await DynamoDBClient.DynamoDBClientConfiguration(region: myRegion)
+            let config = try await DynamoDBClient.DynamoDBClientConfiguration(region: Secrets.awsRegion)
             config.awsCredentialIdentityResolver = provider
             
             let newClient = DynamoDBClient(config: config)
@@ -110,9 +109,43 @@ class AWSManager: @unchecked Sendable {
     func save(_ item: MaintenanceItem) async throws {
         let client = try await getClient()
         let dynamoItem = makeDynamoItem(from: item)
-        let input = PutItemInput(item: dynamoItem, tableName: myTableName)
+        let input = PutItemInput(item: dynamoItem, tableName: Secrets.dynamoTableName)
         
         _ = try await client.putItem(input: input)
+    }
+    
+    /// Deletes a specific maintenance item from DynamoDB
+    func delete(item: MaintenanceItem) async throws {
+        let client = try await getClient()
+        
+        let input = DeleteItemInput(
+            key: [
+                "userId": .s(Secrets.cognitoPoolId),
+                "itemId": .s(item.id.uuidString)
+            ],
+            tableName: Secrets.dynamoTableName
+        )
+        
+        _ = try await client.deleteItem(input: input)
+    }
+    
+    /// Wipes ALL data for the current user
+    ///
+    /// Fetches all items first, then deletes them one by one.
+    /// Note: This is an expensive operation if the user has thousands of items.
+    func nukeUserData() async throws {
+        print("DEBUG: nukeUserData called")
+        // 1. Fetch all items
+        let allItems = try await fetchAll()
+        print("DEBUG: Fetched \(allItems.count) items to delete")
+        
+        // 2. Delete each one
+        // Using TaskGroup to delete in parallel could be faster, but let's do serial for safety/simplicity first
+        for item in allItems {
+            print("DEBUG: Deleting item \(item.title) (\(item.id))")
+            try await delete(item: item)
+        }
+        print("DEBUG: nukeUserData completed")
     }
     
     /// Retrieves all maintenance items associated with current user identity
@@ -125,9 +158,9 @@ class AWSManager: @unchecked Sendable {
         let client = try await getClient()
         
         let input = QueryInput(
-            expressionAttributeValues: [":uid": .s(myPoolId)],
+            expressionAttributeValues: [":uid": .s(Secrets.cognitoPoolId)],
             keyConditionExpression: "userId = :uid",
-            tableName: myTableName
+            tableName: Secrets.dynamoTableName
         )
         
         let output = try await client.query(input: input)
@@ -162,8 +195,8 @@ class AWSManager: @unchecked Sendable {
         }
 
         return [
-            "userId": .s(myPoolId),               // Partition Key
-            "itemId": .s(item.id.uuidString),     // Sort Key
+            "userId": .s(Secrets.cognitoPoolId),      // Partition Key
+            "itemId": .s(item.id.uuidString),         // Sort Key
             "title": .s(item.title),
             "intervalMileage": .n(String(item.intervalMileage)),
             "type": .s(item.type.rawValue),

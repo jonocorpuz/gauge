@@ -9,46 +9,41 @@ struct SettingsView: View {
     @State private var model: String = ""
     
     @AppStorage("useMiles") private var useMiles: Bool = false
+    @State private var showResetConfirmation = false
 
     var body: some View {
         ZStack {
             Color.white.ignoresSafeArea()
-            
             ScrollView {
                 VStack(spacing: 16) {
-                    
                     // --- HEADER ---
                     ZStack {
                         Text("Settings")
                             .font(.system(size: 32, weight: .bold))
                             .frame(maxWidth: .infinity, alignment: .center)
                             .foregroundStyle(Color.menuBlack)
-                        
                         HStack {
                             Button(action: { dismiss() }) {
                                 Image(systemName: "xmark")
                                     .font(.system(size: 30))
                                     .foregroundStyle(Color.menuBlack)
                             }
-                            
                             Spacer()
                         }
                     }
-                    
+
                     VStack(spacing: 16) {
                         Text("Units")
                             .font(.system(size: 16, weight: .bold))
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .foregroundStyle(Color.menuBlack)
                             .padding(.top, 12)
-                        
                         HStack(spacing: 12) {
                             TypeButton(
                                 title: "Metric (km)",
                                 isSelected: !useMiles,
                                 action: { withAnimation { useMiles = false } }
                             )
-                            
                             TypeButton(
                                 title: "Imperial (mi)",
                                 isSelected: useMiles,
@@ -56,37 +51,31 @@ struct SettingsView: View {
                             )
                         }
                     }
-                    
+
                     VStack(spacing: 16) {
                         Text("Vehicle")
                             .font(.system(size: 16, weight: .bold))
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .foregroundStyle(Color.menuBlack)
                             .padding(.top, 12)
-                        
                         VStack(spacing: 12) {
-                            // 2. Bind the text field to your state variables using '$'
                             inputField(placeholder: "Year", text: $year)
-                            
                             inputField(placeholder: "Make", text: $make)
-                            
                             inputField(placeholder: "Model", text: $model)
                         }
                     }
-                    
+
                     VStack(spacing: 16) {
                         Text("About")
                             .font(.system(size: 16, weight: .bold))
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .foregroundStyle(Color.menuBlack)
                             .padding(.top, 12)
-                        
                         VStack(spacing: 0) {
                             Text("Version 1.01")
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .foregroundStyle(Color.menuBlack)
                                 .padding(12)
-                            
                             Text("Build 01.12.2026")
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .foregroundStyle(Color.menuBlack)
@@ -99,9 +88,8 @@ struct SettingsView: View {
                                 .stroke(Color.menuWhite, lineWidth: 1)
                         )
                     }
-                    
+
                     VStack(spacing: 16) {
-                        
                         Button(action: { print("Test") }) {
                             Text("Export Data")
                                 .font(.headline)
@@ -111,8 +99,7 @@ struct SettingsView: View {
                                 .background(Color.menuBlack)
                                 .clipShape(RoundedRectangle(cornerRadius: 16))
                         }
-                        
-                        Button(action: { print("Test") }) {
+                        Button(action: { showResetConfirmation = true }) {
                             Text("Reset")
                                 .font(.headline)
                                 .foregroundStyle(.white)
@@ -120,6 +107,15 @@ struct SettingsView: View {
                                 .frame(height: 55)
                                 .background(Color.menuRedAccent)
                                 .clipShape(RoundedRectangle(cornerRadius: 16))
+                        }
+                        .alert("Reset Data", isPresented: $showResetConfirmation) {
+                            Button("Cancel", role: .cancel) { }
+                            Button("Delete", role: .destructive) {
+                                store.resetAllData()
+                                dismiss()
+                            }
+                        } message: {
+                            Text("Are you sure? This will delete ALL maintenance history from AWS. This cannot be undone.")
                         }
                     }
                     .padding(.top, 24)

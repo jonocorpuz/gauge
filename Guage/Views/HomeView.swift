@@ -20,7 +20,7 @@ struct HomeView: View {
             ZStack(alignment: .topTrailing) {
                 HStack {
                     NavigationLink {
-                        SettingsView(store: CarDataStore())
+                        SettingsView(store: store)
                     } label: {
                         Image(systemName: "gearshape.fill")
                             .font(.system(size: 24))
