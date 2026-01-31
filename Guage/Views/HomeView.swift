@@ -47,7 +47,7 @@ struct HomeView: View {
 
                     Spacer()
                     
-                    Image("m340i")
+                    Image(store.staticVehicleImage)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .padding(30)

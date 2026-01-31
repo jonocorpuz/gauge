@@ -77,6 +77,10 @@ class AWSManager: @unchecked Sendable {
     static let shared = AWSManager()
     var dbClient: DynamoDBClient? // DynamoDB client intance
     
+    private let partitionKey = "userId"
+    private let sortKey = "itemId"
+    private let metadataKey = "metadataId"
+    
     private init() { }
 
     /// Initializes and returns DynamoDB client
@@ -102,11 +106,23 @@ class AWSManager: @unchecked Sendable {
         }
     }
     
+    /// Saves user's car metadata to DynamoDB table
+    ///
+    /// Serializes user's car details into DynamoDB attributes and
+    /// uses 'PutItem' operation to add to table
+    func saveCar(_ car: CarInfo) async throws {
+        let client = try await getClient()
+        let dynamoItem = makeDynamoCarItem(from: car)
+        let input = PutItemInput(item: dynamoItem, tableName: Secrets.dynamoTableName)
+        
+        _ = try await client.putItem(input: input)
+    }
+    
     /// Saves maintenance item to DynamoDB table
     ///
     /// Serializes provided 'MaintenanceItem' into DynamoDB 'AttributeValues' and
     /// adds item to table using 'PutItem' operation
-    func save(_ item: MaintenanceItem) async throws {
+    func saveItem(_ item: MaintenanceItem) async throws {
         let client = try await getClient()
         let dynamoItem = makeDynamoItem(from: item)
         let input = PutItemInput(item: dynamoItem, tableName: Secrets.dynamoTableName)
@@ -116,17 +132,19 @@ class AWSManager: @unchecked Sendable {
     
     /// Deletes a specific maintenance item from DynamoDB
     func delete(item: MaintenanceItem) async throws {
+        try await deleteRow(sortId: item.id.uuidString)
+    }
+    
+    private func deleteRow(sortId: String) async throws {
         let client = try await getClient()
-        
-        let input = DeleteItemInput(
-            key: [
-                "userId": .s(Secrets.cognitoPoolId),
-                "itemId": .s(item.id.uuidString)
-            ],
-            tableName: Secrets.dynamoTableName
-        )
-        
-        _ = try await client.deleteItem(input: input)
+            let input = DeleteItemInput(
+                key: [
+                    partitionKey: .s(Secrets.cognitoPoolId),
+                    sortKey: .s(sortId)
+                ],
+                tableName: Secrets.dynamoTableName
+            )
+            _ = try await client.deleteItem(input: input)
     }
     
     /// Wipes ALL data for the current user
@@ -134,18 +152,13 @@ class AWSManager: @unchecked Sendable {
     /// Fetches all items first, then deletes them one by one.
     /// Note: This is an expensive operation if the user has thousands of items.
     func nukeUserData() async throws {
-        print("DEBUG: nukeUserData called")
-        // 1. Fetch all items
-        let allItems = try await fetchAll()
-        print("DEBUG: Fetched \(allItems.count) items to delete")
+        let (car, items) = try await fetchAll()
+
+        try await deleteRow(sortId: metadataKey)
         
-        // 2. Delete each one
-        // Using TaskGroup to delete in parallel could be faster, but let's do serial for safety/simplicity first
-        for item in allItems {
-            print("DEBUG: Deleting item \(item.title) (\(item.id))")
+        for item in items {
             try await delete(item: item)
         }
-        print("DEBUG: nukeUserData completed")
     }
     
     /// Retrieves all maintenance items associated with current user identity
@@ -154,7 +167,7 @@ class AWSManager: @unchecked Sendable {
     ///
     /// Returns: Array of 'MaintenanceItem' objects
     /// Throws: Error if network request fails
-    func fetchAll() async throws -> [MaintenanceItem] {
+    func fetchAll() async throws -> (car: CarInfo?, items:[MaintenanceItem]) {
         let client = try await getClient()
         
         let input = QueryInput(
@@ -165,17 +178,38 @@ class AWSManager: @unchecked Sendable {
         
         let output = try await client.query(input: input)
         
-        var finalItems: [MaintenanceItem] = []
+        var fetchedCar: CarInfo? = nil
+        var fetchedItems: [MaintenanceItem] = []
         
         if let rawItems = output.items {
             for rawItem in rawItems {
-                if let convertedItem = makeLocalItem(from: rawItem) {
-                    finalItems.append(convertedItem)
+                
+                // Step 1: Get the ID attribute
+                if let idAttribute = rawItem[sortKey] {
+                    
+                    switch idAttribute {
+                        case .s(let idString):
+                            if idString == metadataKey {
+                                if let car = makeLocalCarItem(from: rawItem) {
+                                    fetchedCar = car
+                                }
+                            }
+                        
+                            else {
+                                if let item = makeLocalItem(from: rawItem) {
+                                    fetchedItems.append(item)
+                                }
+                            }
+                        
+                        default:
+                            // ID was not a string, ignore this row
+                            continue
+                    }
                 }
             }
         }
         
-        return finalItems
+        return (fetchedCar, fetchedItems)
     }
 
     /// Serializes 'MaintenanceItem' into DynamoDB 'AttributeValue' dictionary
@@ -255,6 +289,45 @@ class AWSManager: @unchecked Sendable {
             intervalMileage: interval,
             type: EntryType(rawValue: typeString) ?? .maintenance,
             history: history
+        )
+    }
+    
+    private func makeDynamoCarItem(from car: CarInfo) -> [String: DynamoDBClientTypes.AttributeValue] {
+            return [
+                "userId": .s(Secrets.cognitoPoolId),
+                "itemId": .s(metadataKey),
+                "make": .s(car.make),
+                "model": .s(car.model),
+                "year": .s(car.year),
+                "currentMileage": .n(String(car.currentMileage)),
+                "lastUpdated": .s(ISO8601DateFormatter().string(from: car.lastUpdated))
+            ]
+        }
+        
+    private func makeLocalCarItem(from dbItem: [String: DynamoDBClientTypes.AttributeValue]) -> CarInfo? {
+        // We know the ID is correct, so just grab the fields
+        guard let makeAttr = dbItem["make"], case .s(let make) = makeAttr else { return nil }
+        guard let modelAttr = dbItem["model"], case .s(let model) = modelAttr else { return nil }
+        guard let yearAttr = dbItem["year"], case .s(let year) = yearAttr else { return nil }
+        
+        // Handle Mileage
+        var mileage = 0
+        if let mileageAttr = dbItem["currentMileage"], case .n(let mileageString) = mileageAttr {
+            mileage = Int(mileageString) ?? 0
+        }
+        
+        // Handle Date
+        var date = Date()
+        if let dateAttr = dbItem["lastUpdated"], case .s(let dateString) = dateAttr {
+            date = ISO8601DateFormatter().date(from: dateString) ?? Date()
+        }
+        
+        return CarInfo(
+            year: year,
+            make: make,
+            model: model,
+            currentMileage: mileage,
+            lastUpdated: date
         )
     }
 }

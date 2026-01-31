@@ -26,11 +26,12 @@ struct MaintenanceItem: Identifiable, Codable {
     var history: [MaintenanceEvent]
     
     var lastServiceMileage: Int {
-        return history.first?.mileage ?? 0
+        // Use the event with the latest date
+        return history.max(by: { $0.date < $1.date })?.mileage ?? 0
     }
     
     var lastServiceDate: Date? {
-        return history.first?.date
+        return history.max(by: { $0.date < $1.date })?.date
     }
     
     func getRemainingMiles(currentOdometer: Int) -> Int {

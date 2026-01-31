@@ -9,6 +9,7 @@ struct SettingsView: View {
     @State private var model: String = ""
     
     @AppStorage("useMiles") private var useMiles: Bool = false
+    @AppStorage("isOnboardingComplete") private var isOnboardingComplete: Bool = false
     @State private var showResetConfirmation = false
 
     var body: some View {
@@ -112,6 +113,7 @@ struct SettingsView: View {
                             Button("Cancel", role: .cancel) { }
                             Button("Delete", role: .destructive) {
                                 store.resetAllData()
+                                isOnboardingComplete = false
                                 dismiss()
                             }
                         } message: {
