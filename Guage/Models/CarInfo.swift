@@ -15,12 +15,14 @@ struct CarInfo: Identifiable, Codable {
     var make: String
     var model: String
     var currentMileage: Int
+    var lastUpdated: Date
     
-    var mileageHistory: [MileageEntry] = []
-}
-
-struct MileageEntry: Identifiable, Codable {
-    var id: UUID = UUID()
-    var date: Date
-    var mileage: Int
+    // Default Init
+    init(year: String, make: String, model: String, currentMileage: Int, lastUpdated: Date = Date()) {
+        self.year = year
+        self.make = make
+        self.model = model
+        self.currentMileage = currentMileage
+        self.lastUpdated = lastUpdated
+    }
 }

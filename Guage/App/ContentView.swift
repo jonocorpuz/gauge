@@ -12,6 +12,8 @@ struct ContentView: View {
     /// - Note: Initialzed as '@StateObject' to ensure data persists as app is running
     @StateObject var store = CarDataStore()
     
+    @AppStorage("isOnboardingComplete") private var isOnboardingComplete: Bool = false
+    
     /// Currently active navigation tab
     ///
     /// - Note: Defaults to '.home' (HomeView.swift)
@@ -22,16 +24,22 @@ struct ContentView: View {
     }
     
     var body: some View {
-        ZStack {
-            switch selectedTab {
-                case .home: HomeView(store: store)
-                case .maintenance: MaintenanceView(store: store)
+        Group {
+            if !isOnboardingComplete {
+                OnboardingView(store: store, isOnboardingComplete: $isOnboardingComplete)
+            } else {
+                ZStack {
+                    switch selectedTab {
+                    case .home: HomeView(store: store)
+                    case .maintenance: MaintenanceView(store: store)
+                    }
+                }
+                .safeAreaInset(edge: .bottom) {
+                    CustomTabBar(selectedTab: $selectedTab)
+                }
+                .ignoresSafeArea(.keyboard)
             }
         }
-        .safeAreaInset(edge: .bottom) {
-            CustomTabBar(selectedTab: $selectedTab)
-        }
-        .ignoresSafeArea(.keyboard)
     }
 }
 

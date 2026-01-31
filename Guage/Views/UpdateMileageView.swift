@@ -65,7 +65,7 @@ struct UpdateMileageView: View {
         let newMileage = Int(mileage) ?? store.carInfo.currentMileage
         let entryDate = date ?? Date()
         
-        store.addMileageEntry(
+        store.updateMileage(
             date: entryDate,
             miles: newMileage
         )

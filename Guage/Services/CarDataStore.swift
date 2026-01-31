@@ -22,11 +22,10 @@ class CarDataStore: ObservableObject {
     
     init() {
         self.carInfo = CarInfo(
-            year: "2023",
-            make: "BMW",
-            model: "M340i",
-            currentMileage: 12154,
-            mileageHistory: []
+            year: "",
+            make: "",
+            model: "",
+            currentMileage: 0
         )
         
         // Test AWS Connection & Fetch Data on Launch
@@ -36,14 +35,19 @@ class CarDataStore: ObservableObject {
                 self.connectionStatus = "Fetching items..."
                 
                 // 2. Fetch Items
-                let items = try await AWSManager.shared.fetchAll()
-                self.maintenanceItems = items
+                let (fetchedCar, fetchedItems) = try await AWSManager.shared.fetchAll()
                 
-                self.connectionStatus = "✅ Loaded \(items.count) items from AWS"
+                if let fetchedCar = fetchedCar {
+                    self.carInfo = fetchedCar
+                }
+                
+                self.maintenanceItems = fetchedItems
+                
+                self.connectionStatus = "✅ Loaded \(fetchedItems.count) items"
                 
                 // Reset status after a delay
-                 try? await Task.sleep(nanoseconds: 3 * 1_000_000_000)
-                 self.connectionStatus = "✅ AWS Connected"
+                try? await Task.sleep(nanoseconds: 3 * 1_000_000_000)
+                self.connectionStatus = "✅ AWS Connected"
             } catch {
                 print("AWS Init Failed: \(error)")
                 self.connectionStatus = "❌ Error: \(error)"
@@ -51,12 +55,27 @@ class CarDataStore: ObservableObject {
         }
     }
     
-    func addMileageEntry(date: Date, miles: Int) {
-        let newEntry = MileageEntry(date: date, mileage: miles)
+    func fetchData() async {
+        do {
+            let (fetchedCar, fetchedItems) = try await AWSManager.shared.fetchAll()
+            
+            if let fetchedCar = fetchedCar {
+                self.carInfo = fetchedCar
+            }
+            
+            self.maintenanceItems = fetchedItems
+        }
         
-        carInfo.mileageHistory.append(newEntry)
-        
+        catch {
+            print("ERROR: Loading failed");
+        }
+    }
+    
+    func updateMileage(date: Date, miles: Int) {
         carInfo.currentMileage = miles
+        carInfo.lastUpdated = date
+        
+        saveCarToAWS()
     }
     
     func addOrUpdateMaintenanceItem(title: String, date: Date, mileage: Int, interval: Int, type: EntryType) {
@@ -68,6 +87,7 @@ class CarDataStore: ObservableObject {
             // Add history event
             let event = MaintenanceEvent(date: date, mileage: mileage)
             item.history.append(event)
+            item.history.sort(by: { $0.date > $1.date }) // Keep sorted newest first
             
             // Update interval if provided (and it's maintenance)
             if type == .maintenance {
@@ -92,19 +112,19 @@ class CarDataStore: ObservableObject {
         
         // Synced to AWS
         if let savedItem = (maintenanceItems.first { $0.title.lowercased() == title.lowercased() }) {
-             Task {
-                 @MainActor in
-                 self.connectionStatus = "Saving \(savedItem.title) to AWS..."
-                 do {
-                     try await AWSManager.shared.save(savedItem)
-                     self.connectionStatus = "✅ Saved \(savedItem.title)"
-                     // Reset after 3 seconds
-                     try? await Task.sleep(nanoseconds: 3 * 1_000_000_000)
-                     self.connectionStatus = "✅ AWS Connected"
-                 } catch {
-                     self.connectionStatus = "❌ Error: \(error)"
-                 }
-             }
+            Task {
+                @MainActor in
+                self.connectionStatus = "Saving \(savedItem.title)..."
+                do {
+                    try await AWSManager.shared.saveItem(savedItem)
+                    self.connectionStatus = "✅ Saved \(savedItem.title)"
+                    // Reset after 3 seconds
+                    try? await Task.sleep(nanoseconds: 3 * 1_000_000_000)
+                    self.connectionStatus = "✅ AWS Connected"
+                } catch {
+                    self.connectionStatus = "❌ Error: \(error)"
+                }
+            }
         }
     }
     
@@ -119,8 +139,9 @@ class CarDataStore: ObservableObject {
                 // Clear local memory
                 print("DEBUG: Clearing local memory")
                 self.maintenanceItems.removeAll()
-                self.carInfo.mileageHistory.removeAll()
-                // Reset to default (or maybe we should trigger onboarding again? For now just clear items)
+                
+                // Reset car info to blank
+                self.carInfo = CarInfo(year: "", make: "", model: "", currentMileage: 0)
                 
                 self.connectionStatus = "✅ Data Wiped"
                 try? await Task.sleep(nanoseconds: 2 * 1_000_000_000)
@@ -130,5 +151,35 @@ class CarDataStore: ObservableObject {
                 self.connectionStatus = "❌ Reset Failed: \(error.localizedDescription)"
             }
         }
+    }
+    
+    // MARK: - Vehicle Management
+    
+    /// Updates the car metadata
+    func updateCarDetails(year: String, make: String, model: String, mileage: Int) {
+        self.carInfo.year = year
+        self.carInfo.make = make
+        self.carInfo.model = model
+        self.carInfo.currentMileage = mileage
+        self.carInfo.lastUpdated = Date()
+        
+        saveCarToAWS()
+    }
+    
+    private func saveCarToAWS() {
+        Task {
+            @MainActor in
+            do {
+                try await AWSManager.shared.saveCar(self.carInfo)
+                print("✅ Car info saved to AWS")
+            } catch {
+                print("❌ Failed to save car info: \(error)")
+            }
+        }
+    }
+    
+    /// Static image to use for all vehicles for now
+    var staticVehicleImage: String {
+        "car_volkswagen_golf"
     }
 }
