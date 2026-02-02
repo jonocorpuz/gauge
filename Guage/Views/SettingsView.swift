@@ -17,7 +17,6 @@ struct SettingsView: View {
             Color.white.ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // --- FIXED HEADER ---
                 ZStack {
                     Text("Settings")
                         .font(.system(size: 32, weight: .bold))
@@ -112,10 +111,11 @@ struct SettingsView: View {
                             )
                         }
                         
-                        // Actions
                         VStack(spacing: 16) {
-                            Button(action: { print("Test") }) {
-                                Text("Export Data")
+                            Button(action: { 
+                                NotificationManager.shared.scheduleDebugNotifications()
+                            }) {
+                                Text("Test Notifications (DEBUG)")
                                     .font(.headline)
                                     .foregroundStyle(.white)
                                     .frame(maxWidth: .infinity)

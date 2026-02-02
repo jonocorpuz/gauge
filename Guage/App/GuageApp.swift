@@ -17,6 +17,9 @@ struct GuageApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onAppear {
+                    NotificationManager.shared.requestPermission()
+                }
         }
     }
 }
