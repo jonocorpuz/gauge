@@ -113,7 +113,7 @@ struct OnboardingItem: Identifiable {
     static let modifications = OnboardingItem(
         imageName: "onboarding3", // Placeholder for mods
         title: "Track Your Build",
-        description: "Not just for oil changes. separate your essential maintenance from your performance modifications."
+        description: "Separate your maintenance from your performance modifications."
     )
 }
 

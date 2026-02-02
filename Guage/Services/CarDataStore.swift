@@ -1,10 +1,3 @@
-//
-//  CarDataStore.swift
-//  Guage
-//
-//  Created by Jonathan Corpuz on 2025-12-11.
-//
-
 import SwiftUI
 import Combine
 
@@ -18,6 +11,13 @@ class CarDataStore: ObservableObject {
     @Published var carInfo: CarInfo // Metadata
     @Published var maintenanceItems: [MaintenanceItem] = [] // Items
     
+    private var mileageHistory: [KilometerReading] = []
+    
+    struct KilometerReading: Codable {
+        let date: Date
+        let kilometers: Int
+    }
+    
     @Published var connectionStatus: String = "Connecting to AWS..."
     
     init() {
@@ -27,6 +27,12 @@ class CarDataStore: ObservableObject {
             model: "",
             currentMileage: 0
         )
+        
+        // Load local history
+        if let data = UserDefaults.standard.data(forKey: "local_kilometer_history"),
+           let history = try? JSONDecoder().decode([KilometerReading].self, from: data) {
+            self.mileageHistory = history
+        }
         
         // Test AWS Connection & Fetch Data on Launch
         Task {
@@ -41,14 +47,19 @@ class CarDataStore: ObservableObject {
                     self.carInfo = fetchedCar
                 }
                 
+                NotificationManager.shared.rescheduleAllNotifications(
+                    items: fetchedItems,
+                    currentMileage: self.carInfo.currentMileage,
+                    dailyRate: self.calculateDailyRate()
+                )
+                
                 self.maintenanceItems = fetchedItems
-                
                 self.connectionStatus = "✅ Loaded \(fetchedItems.count) items"
-                
-                // Reset status after a delay
                 try? await Task.sleep(nanoseconds: 3 * 1_000_000_000)
                 self.connectionStatus = "✅ AWS Connected"
-            } catch {
+            }
+            
+            catch {
                 print("AWS Init Failed: \(error)")
                 self.connectionStatus = "❌ Error: \(error)"
             }
@@ -75,29 +86,40 @@ class CarDataStore: ObservableObject {
         carInfo.currentMileage = miles
         carInfo.lastUpdated = date
         
+        // Add to history
+        let reading = KilometerReading(date: date, kilometers: miles)
+        mileageHistory.append(reading)
+        mileageHistory.sort(by: { $0.date < $1.date }) // Oldest first
+        
+        if let data = try? JSONEncoder().encode(mileageHistory) {
+            UserDefaults.standard.set(data, forKey: "local_kilometer_history")
+        }
+        
         saveCarToAWS()
+        
+        NotificationManager.shared.rescheduleAllNotifications(
+            items: self.maintenanceItems,
+            currentMileage: miles,
+            dailyRate: calculateDailyRate()
+        )
     }
     
     func addOrUpdateMaintenanceItem(title: String, date: Date, mileage: Int, interval: Int, type: EntryType) {
-        // Case insensitive match
         if let index = maintenanceItems.firstIndex(where: { $0.title.lowercased() == title.lowercased() }) {
-            // Update existing
             var item = maintenanceItems[index]
             
-            // Add history event
             let event = MaintenanceEvent(date: date, mileage: mileage)
             item.history.append(event)
             item.history.sort(by: { $0.date > $1.date }) // Keep sorted newest first
             
-            // Update interval if provided (and it's maintenance)
             if type == .maintenance {
                 item.intervalMileage = interval
             }
             
-            // Save back
             maintenanceItems[index] = item
-        } else {
-            // Create new
+        }
+        
+        else {
             let initialEvent = MaintenanceEvent(date: date, mileage: mileage)
             
             let newItem = MaintenanceItem(
@@ -110,7 +132,6 @@ class CarDataStore: ObservableObject {
             maintenanceItems.append(newItem)
         }
         
-        // Synced to AWS
         if let savedItem = (maintenanceItems.first { $0.title.lowercased() == title.lowercased() }) {
             Task {
                 @MainActor in
@@ -118,6 +139,13 @@ class CarDataStore: ObservableObject {
                 do {
                     try await AWSManager.shared.saveItem(savedItem)
                     self.connectionStatus = "✅ Saved \(savedItem.title)"
+                    
+                    NotificationManager.shared.rescheduleAllNotifications(
+                        items: self.maintenanceItems,
+                        currentMileage: self.carInfo.currentMileage,
+                        dailyRate: self.calculateDailyRate()
+                    )
+                    
                     // Reset after 3 seconds
                     try? await Task.sleep(nanoseconds: 3 * 1_000_000_000)
                     self.connectionStatus = "✅ AWS Connected"
@@ -139,9 +167,13 @@ class CarDataStore: ObservableObject {
                 // Clear local memory
                 print("DEBUG: Clearing local memory")
                 self.maintenanceItems.removeAll()
+                self.mileageHistory.removeAll()
+                UserDefaults.standard.removeObject(forKey: "local_kilometer_history")
                 
                 // Reset car info to blank
                 self.carInfo = CarInfo(year: "", make: "", model: "", currentMileage: 0)
+                
+                UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
                 
                 self.connectionStatus = "✅ Data Wiped"
                 try? await Task.sleep(nanoseconds: 2 * 1_000_000_000)
@@ -160,10 +192,9 @@ class CarDataStore: ObservableObject {
         self.carInfo.year = year
         self.carInfo.make = make
         self.carInfo.model = model
-        self.carInfo.currentMileage = mileage
-        self.carInfo.lastUpdated = Date()
         
-        saveCarToAWS()
+        // Use existing logic for mileage to ensure it's logged as an entry
+        updateMileage(date: Date(), miles: mileage)
     }
     
     private func saveCarToAWS() {
@@ -178,6 +209,70 @@ class CarDataStore: ObservableObject {
         }
     }
     
+    struct MileageContext {
+        let rate: Double
+        let start: KilometerReading?
+        let end: KilometerReading?
+    }
+    
+    var mileageContext: MileageContext {
+        calculateDailyRateContext()
+    }
+    
+    var averageDailyKm: Double {
+        calculateDailyRateContext().rate
+    }
+    
+    private func calculateDailyRate() -> Double {
+        calculateDailyRateContext().rate
+    }
+
+    private func calculateDailyRateContext() -> MileageContext {
+        guard mileageHistory.count >= 2 else {
+             return MileageContext(rate: 50.0, start: nil, end: nil)
+        }
+        
+        let now = Date()
+        let targetDate = Calendar.current.date(byAdding: .day, value: -90, to: now) ?? now
+        
+        guard let latest = mileageHistory.last else {
+             return MileageContext(rate: 50.0, start: nil, end: nil)
+        }
+        
+        let candidates = mileageHistory.dropLast()
+        
+        if let firstInWindow = candidates.first(where: { $0.date >= targetDate }) {
+             let rate = calculateRate(from: firstInWindow, to: latest)
+             return MileageContext(rate: rate, start: firstInWindow, end: latest)
+        }
+        
+        if let oldest = candidates.first {
+            let rate = calculateRate(from: oldest, to: latest)
+            return MileageContext(rate: rate, start: oldest, end: latest)
+        }
+        
+        return MileageContext(rate: 50.0, start: nil, end: nil)
+    }
+    
+    private func calculateDailyRateWrapper(from start: KilometerReading, to end: KilometerReading) -> Double {
+         let daysDiff = end.date.timeIntervalSince(start.date) / 86400
+         let kmDiff = Double(end.kilometers - start.kilometers)
+         
+         if daysDiff < 1 || kmDiff < 0 { return 50.0 }
+         return kmDiff / daysDiff
+    }
+    
+    private func calculateRate(from start: KilometerReading, to end: KilometerReading) -> Double {
+         let daysDiff = end.date.timeIntervalSince(start.date) / 86400
+         let kmDiff = Double(end.kilometers - start.kilometers)
+         
+         // Sanity checks
+         if daysDiff < 0.1 { return 0 } // Avoid division by near-zero
+         if kmDiff < 0 { return 0 } // Negative distance?
+         
+         return kmDiff / daysDiff
+    }
+
     /// Static image to use for all vehicles for now
     var staticVehicleImage: String {
         "car_volkswagen_golf"
