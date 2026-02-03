@@ -38,6 +38,10 @@ Manage your vehicle profile and application preferences.
 
 **Debug Tools:** Built-in tools for testing notifications and connections.
 
+### MaintenanceView
+
+Detail of applications features and initialization of user data.
+
 (Insert SettingsView screenshot here)
 
 ## Tech Stack
