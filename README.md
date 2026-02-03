@@ -97,6 +97,7 @@ graph LR
 How Gauge handles data consistency. When a user adds an item, we update the local state immediately for UI responsiveness, then sync to AWS in the background.
 
 ```mermaid
+%%{init: { 'sequence': {'mirrorActors': false} } }%%
 sequenceDiagram
     participant User
     participant VM as CarDataStore
@@ -115,19 +116,24 @@ Gauge does not use a backend server to push notifications. Instead, it uses a sm
 
 ```mermaid
 graph TD
-    Start[User Updates Mileage] --> A[Save to DynamoDB]
-    A --> B[Calculate Daily Driving Rate]
-    B -->|Using 6-Month Rolling Window| C{"Is Rate Valid?"}
+    Start["User Updates Mileage"]
 
-    C -- Yes --> D["Wipe Pending Notifications"]
-    C -- No --> E["Schedule 'Inactivity Nudge' Only"]
+    %% Path 1: Data Sync
+    Start --> A1["Save to CarDataStore"]
+    A1 --> A2["Sync to AWS DynamoDB"]
 
-    D --> F["Loop Through Maintenance Items"]
-    F --> G["Calculate Exact Due Date"]
-    G --> H["Schedule 'Warning' (7 Days Prior)"]
-    H --> I["Schedule 'Overdue' (On Due Date)"]
+    %% Path 2: Predictive Maintenance
+    Start --> B1["Calculate Daily Driving Rate"]
+    B1 --> B2["Wipe Pending Maintenance Notifications"]
+    B2 --> B3["Loop Maintenance Items"]
+    B3 --> B4["Calculate Estimated Due Date"]
+    B4 --> B5W["Schedule 'Warning' (7 Days Prior)"]
+    B4 --> B5D["Schedule 'Overdue' (On Due Date)"]
 
-    I --> J[Finish]
+    %% Path 3: Inactivity Nudge
+    Start --> C1["Get Last Update Date"]
+    C1 --> C2["Wipe Nudge Notifications"]
+    C2 --> C3["Schedule New Nudge (In 7 Days)"]
 ```
 
 ## How to Run This Project
