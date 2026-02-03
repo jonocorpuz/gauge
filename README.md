@@ -16,16 +16,6 @@ The landing page displays your vehicle's make, model, and current mileage. It se
 
 **Status at a Glance:** See your vehicle's health instantly.
 
-<img width="314" height="640" alt="Image" src="https://github.com/user-attachments/assets/98be0666-6643-4dc8-8667-de87349ea981" />
-
-<img width="426" height="893" alt="Image" src="https://github.com/user-attachments/assets/9b0ff620-c5f7-4ffe-9789-855c5b114218" />
-
-<img width="429" height="897" alt="Image" src="https://github.com/user-attachments/assets/64bfcf03-ceff-4d37-83b0-e059313c3db7" />
-
-<img width="1206" height="2622" alt="Image" src="https://github.com/user-attachments/assets/e159a980-6916-4e4e-b493-b32dd153eb4e" />
-
-<img width="432" height="908" alt="Image" src="https://github.com/user-attachments/assets/f517ccf0-58c2-42da-b933-0195d22194bd" />
-
 ### MaintenanceView
 
 A comprehensive tab showing all recorded maintenance and modification items.
