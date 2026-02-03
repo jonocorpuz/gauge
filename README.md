@@ -1,72 +1,139 @@
-# Guage
+Gauge
+Smart Maintenance Tracking for Car Enthusiasts
 
-Guage is a simple iOS application designed to help you keep track of your car's maintenance and mileage. It acts as a digital logbook, ensuring you always know when your last service was and when the next one is due.
+Gauge is a simple iOS application designed to help you keep track of your car's maintenance and mileage. It acts as a digital logbook, ensuring you always know when your last service was and when the next one is due.
 
-## What it does
+Unlike standard apps that rely on simple time intervals, Gauge learns your driving habits to predict exactly when your next service is due.
 
-**Keeps track of your car**
-The app displays your vehicle's make, model, and current mileage right on the home screen. It gives you a quick snapshot of your car's status every time you open the app.
+Application Overview
+HomeView
 
-(Insert image of the main dashboard)
+The landing page displays your vehicle's make, model, and current mileage. It serves as your dashboard for quick status checks and rapid data entry.
 
-**Logs your maintenance**
-You can record every oil change, tire rotation, or repair. For each item, you can see a history of when it was done and at what mileage. This helps you stay on top of regular service intervals.
+Quick Actions: Immediately update your odometer or add a new maintenance item.
 
-(Insert image of adding a maintenance item)
+Status at a Glance: See your vehicle's health instantly.
 
-**Cloud Sync**
-All your data is securely stored in the cloud using AWS. This means if you switch phones or reinstall the app, your maintenance history is safe and will be restored automatically.
+(Insert HomeView screenshot here)
 
-## How to run this project
+MaintenanceView
 
-To run Guage on your own machine:
+A comprehensive tab showing all recorded maintenance and modification items.
 
-1.  Open the project file `Guage.xcodeproj` in Xcode.
-2.  Ensure you have a valid developer signing certificate selected.
-3.  **Important**: This app requires a `Secrets.swift` file for AWS configuration, which is not included in the public repository for security reasons. You will need to add your own AWS Cognito and DynamoDB credentials to build the app successfully.
+Detailed History: Tap any item to see a log of every service date and mileage.
 
-## User Actions
+Upcoming: Items are sorted by urgency, highlighting what needs attention next.
 
-**Updating Mileage**
-Keeping your mileage current is key to accurate tracking.
+(Insert MaintenanceView screenshot here)
 
-1.  Tap the speedometer icon on the home screen.
-2.  Enter your new odometer reading.
-3.  Tap "Save Entry".
-    _Note: The app will calculate your average daily driving distance based on these updates._
+SettingsView
 
-**Adding Maintenance Items**
-When you get work done on your car, log it here:
+Manage your vehicle profile and application preferences.
 
-1.  Tap the "Plus" icon on the home screen.
-2.  **Title**: What did you do? (e.g., "Oil Change", "New Tires").
-3.  **Details**: Enter the current mileage and date.
-4.  **Interval**: If this needs to be done regularly (like every 5,000 miles), enter that number here.
-5.  Tap "Save Entry".
+Vehicle Profile: Update car details or switch vehicles.
 
-**Cloud Sync & Settings**
-To change your car details or units (Miles vs. Km):
+Data Management: Options to reset data or resync with the cloud.
 
-1.  Tap the "Gear" icon in the top right.
-2.  Here you can update your vehicle info or reset your data.
-3.  **Sync**: The app automatically syncs with the cloud whenever you open it or save an item.
+Debug Tools: Built-in tools for testing notifications and connections.
 
-## System Design
+(Insert SettingsView screenshot here)
 
-For those interested in how Guage works under the hood:
+🛠 Tech Stack
+Core Frameworks
 
-**Architecture**
-The app is built using **SwiftUI** in an **MVVM** (Model-View-ViewModel) pattern.
+SwiftUI - User Interface
 
-- **Views**: The screens you see (like `HomeView`).
-- **ViewModel**: `CarDataStore` is the brain. It holds all the data and logic, and the Views watch it for changes.
+MVVM - Design Pattern (Model-View-ViewModel)
 
-**Data Storage (Cloud + Local)**
-We use a "Cloud First" approach with local caching.
+Combine - Reactive Data Binding
 
-1.  **AWS Cloud**: Your data lives in **DynamoDB**, a fast NoSQL database. This allows your data to follow you to any device.
-2.  **Security**: We use **AWS Cognito** to ensure only _you_ can access your data.
-3.  **Local Cache**: We save a copy of your history on your phone (`UserDefaults`) so the app opens instantly, even if your internet is slow.
+UserNotifications - Local Predictive Alerts
 
-**Offline Mode**
-If you don't have internet, don't worry. You can still view your last known data. The app will try to reconnect and sync your latest changes the next time you go online.
+Backend & Cloud (AWS)
+
+AWS DynamoDB - NoSQL Database for scalable storage.
+
+AWS Cognito - Secure User Authentication and Identity Management.
+
+AWS Mobile SDK - Native Swift integration for AWS services.
+
+Local Persistence
+
+UserDefaults - Caching for "Offline First" capability.
+
+System Architecture
+Gauge is built using a "Cloud First, Local Logic" approach. While data is stored securely in AWS, all predictive mathematics and notification scheduling happen locally on the device to ensure privacy and performance.
+
+1. High-Level App Flow
+
+How data moves from the user's finger to the cloud.
+
+Code snippet
+graph LR
+    User(User Action) -->|Interacts| UI[SwiftUI Views]
+    UI -->|Binds to| VM[CarDataStore ViewModel]
+    VM -->|Requests| Mgr[AWSManager]
+    Mgr -->|Authenticates| Auth[AWS Cognito]
+    Mgr -->|Read/Write| DB[(AWS DynamoDB)]
+    
+    subgraph Local Device
+    UI
+    VM
+    Mgr
+    end
+    
+    subgraph Cloud
+    Auth
+    DB
+    end
+2. Data Synchronization Logic
+
+How Gauge handles data consistency. When a user adds an item, we update the local state immediately for UI responsiveness, then sync to AWS in the background.
+
+Code snippet
+sequenceDiagram
+    participant User
+    participant VM as CarDataStore
+    participant AWS as AWS DynamoDB
+
+    User->>VM: Add Maintenance Item ("Oil Change")
+    VM->>VM: Update Local List (UI Updates Instantly)
+    VM->>AWS: Async Write Request
+    AWS-->>VM: Success Confirmation
+    VM->>VM: Update Connection Status "✅ Saved"
+3. The "Set & Forget" Notification System
+
+Gauge does not use a backend server to push notifications. Instead, it uses a smart local algorithm. Every time the odometer is updated, the app recalculates the user's daily driving rate and reschedules alerts.
+
+Code snippet
+graph TD
+    Start[User Updates Mileage] --> A[Save to DynamoDB]
+    A --> B[Calculate Daily Driving Rate]
+    B -->|Using 6-Month Rolling Window| C{Is Rate Valid?}
+    
+    C -- Yes --> D[Wipe Pending Notifications]
+    C -- No --> E[Schedule 'Inactivity Nudge' Only]
+    
+    D --> F[Loop Through Maintenance Items]
+    F --> G[Calculate Exact Due Date]
+    G --> H[Schedule 'Warning' (7 Days Prior)]
+    H --> I[Schedule 'Overdue' (On Due Date)]
+    
+    I --> J[Finish]
+How to Run This Project
+To run Gauge on your local machine:
+
+Clone the Repo: Download the source code.
+
+Open in Xcode: Open Guage.xcodeproj.
+
+Signing: Ensure you have a valid developer signing certificate selected in the project settings.
+
+AWS Configuration (Crucial): This app requires a Secrets.swift file for AWS configuration, which is not included in the public repository for security reasons. Create this file in the root directory:
+
+Swift
+struct Secrets {
+    static let cognitoPoolId = "YOUR_POOL_ID"
+    static let dynamoTableName = "YOUR_TABLE_NAME"
+}
+Build & Run: Select your target simulator or device and hit Run (Cmd+R).
