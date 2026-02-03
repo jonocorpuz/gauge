@@ -40,7 +40,7 @@ Manage your vehicle profile and application preferences.
 
 (Insert SettingsView screenshot here)
 
-## 🛠 Tech Stack
+## Tech Stack
 
 ### Core Frameworks
 
