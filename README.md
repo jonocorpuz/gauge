@@ -1,96 +1,102 @@
-Gauge
+# Gauge
+
 Smart Maintenance Tracking for Car Enthusiasts
 
 Gauge is a simple iOS application designed to help you keep track of your car's maintenance and mileage. It acts as a digital logbook, ensuring you always know when your last service was and when the next one is due.
 
 Unlike standard apps that rely on simple time intervals, Gauge learns your driving habits to predict exactly when your next service is due.
 
-Application Overview
-HomeView
+## Application Overview
+
+### HomeView
 
 The landing page displays your vehicle's make, model, and current mileage. It serves as your dashboard for quick status checks and rapid data entry.
 
-Quick Actions: Immediately update your odometer or add a new maintenance item.
+**Quick Actions:** Immediately update your odometer or add a new maintenance item.
 
-Status at a Glance: See your vehicle's health instantly.
+**Status at a Glance:** See your vehicle's health instantly.
 
 (Insert HomeView screenshot here)
 
-MaintenanceView
+### MaintenanceView
 
 A comprehensive tab showing all recorded maintenance and modification items.
 
-Detailed History: Tap any item to see a log of every service date and mileage.
+**Detailed History:** Tap any item to see a log of every service date and mileage.
 
-Upcoming: Items are sorted by urgency, highlighting what needs attention next.
+**Upcoming:** Items are sorted by urgency, highlighting what needs attention next.
 
 (Insert MaintenanceView screenshot here)
 
-SettingsView
+### SettingsView
 
 Manage your vehicle profile and application preferences.
 
-Vehicle Profile: Update car details or switch vehicles.
+**Vehicle Profile:** Update car details or switch vehicles.
 
-Data Management: Options to reset data or resync with the cloud.
+**Data Management:** Options to reset data or resync with the cloud.
 
-Debug Tools: Built-in tools for testing notifications and connections.
+**Debug Tools:** Built-in tools for testing notifications and connections.
 
 (Insert SettingsView screenshot here)
 
-🛠 Tech Stack
-Core Frameworks
+## 🛠 Tech Stack
 
-SwiftUI - User Interface
+### Core Frameworks
 
-MVVM - Design Pattern (Model-View-ViewModel)
+**SwiftUI** - User Interface
 
-Combine - Reactive Data Binding
+**MVVM** - Design Pattern (Model-View-ViewModel)
 
-UserNotifications - Local Predictive Alerts
+**Combine** - Reactive Data Binding
 
-Backend & Cloud (AWS)
+**UserNotifications** - Local Predictive Alerts
 
-AWS DynamoDB - NoSQL Database for scalable storage.
+### Backend & Cloud (AWS)
 
-AWS Cognito - Secure User Authentication and Identity Management.
+**AWS DynamoDB** - NoSQL Database for scalable storage.
 
-AWS Mobile SDK - Native Swift integration for AWS services.
+**AWS Cognito** - Secure User Authentication and Identity Management.
 
-Local Persistence
+**AWS Mobile SDK** - Native Swift integration for AWS services.
 
-UserDefaults - Caching for "Offline First" capability.
+### Local Persistence
 
-System Architecture
+**UserDefaults** - Caching for "Offline First" capability.
+
+## System Architecture
+
 Gauge is built using a "Cloud First, Local Logic" approach. While data is stored securely in AWS, all predictive mathematics and notification scheduling happen locally on the device to ensure privacy and performance.
 
-1. High-Level App Flow
+### 1. High-Level App Flow
 
 How data moves from the user's finger to the cloud.
 
-Code snippet
+```mermaid
 graph LR
     User(User Action) -->|Interacts| UI[SwiftUI Views]
     UI -->|Binds to| VM[CarDataStore ViewModel]
     VM -->|Requests| Mgr[AWSManager]
     Mgr -->|Authenticates| Auth[AWS Cognito]
     Mgr -->|Read/Write| DB[(AWS DynamoDB)]
-    
+
     subgraph Local Device
     UI
     VM
     Mgr
     end
-    
+
     subgraph Cloud
     Auth
     DB
     end
-2. Data Synchronization Logic
+```
+
+### 2. Data Synchronization Logic
 
 How Gauge handles data consistency. When a user adds an item, we update the local state immediately for UI responsiveness, then sync to AWS in the background.
 
-Code snippet
+```mermaid
 sequenceDiagram
     participant User
     participant VM as CarDataStore
@@ -101,39 +107,46 @@ sequenceDiagram
     VM->>AWS: Async Write Request
     AWS-->>VM: Success Confirmation
     VM->>VM: Update Connection Status "✅ Saved"
-3. The "Set & Forget" Notification System
+```
+
+### 3. The "Set & Forget" Notification System
 
 Gauge does not use a backend server to push notifications. Instead, it uses a smart local algorithm. Every time the odometer is updated, the app recalculates the user's daily driving rate and reschedules alerts.
 
-Code snippet
+```mermaid
 graph TD
     Start[User Updates Mileage] --> A[Save to DynamoDB]
     A --> B[Calculate Daily Driving Rate]
     B -->|Using 6-Month Rolling Window| C{Is Rate Valid?}
-    
+
     C -- Yes --> D[Wipe Pending Notifications]
     C -- No --> E[Schedule 'Inactivity Nudge' Only]
-    
+
     D --> F[Loop Through Maintenance Items]
     F --> G[Calculate Exact Due Date]
     G --> H[Schedule 'Warning' (7 Days Prior)]
     H --> I[Schedule 'Overdue' (On Due Date)]
-    
+
     I --> J[Finish]
-How to Run This Project
+```
+
+## How to Run This Project
+
 To run Gauge on your local machine:
 
-Clone the Repo: Download the source code.
+1. **Clone the Repo:** Download the source code.
 
-Open in Xcode: Open Guage.xcodeproj.
+2. **Open in Xcode:** Open `Guage.xcodeproj`.
 
-Signing: Ensure you have a valid developer signing certificate selected in the project settings.
+3. **Signing:** Ensure you have a valid developer signing certificate selected in the project settings.
 
-AWS Configuration (Crucial): This app requires a Secrets.swift file for AWS configuration, which is not included in the public repository for security reasons. Create this file in the root directory:
+4. **AWS Configuration (Crucial):** This app requires a `Secrets.swift` file for AWS configuration, which is not included in the public repository for security reasons. Create this file in the root directory:
 
-Swift
+```swift
 struct Secrets {
     static let cognitoPoolId = "YOUR_POOL_ID"
     static let dynamoTableName = "YOUR_TABLE_NAME"
 }
-Build & Run: Select your target simulator or device and hit Run (Cmd+R).
+```
+
+5. **Build & Run:** Select your target simulator or device and hit Run (Cmd+R).
