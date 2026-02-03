@@ -117,15 +117,15 @@ Gauge does not use a backend server to push notifications. Instead, it uses a sm
 graph TD
     Start[User Updates Mileage] --> A[Save to DynamoDB]
     A --> B[Calculate Daily Driving Rate]
-    B -->|Using 6-Month Rolling Window| C{Is Rate Valid?}
+    B -->|Using 6-Month Rolling Window| C{"Is Rate Valid?"}
 
-    C -- Yes --> D[Wipe Pending Notifications]
-    C -- No --> E[Schedule 'Inactivity Nudge' Only]
+    C -- Yes --> D["Wipe Pending Notifications"]
+    C -- No --> E["Schedule 'Inactivity Nudge' Only"]
 
-    D --> F[Loop Through Maintenance Items]
-    F --> G[Calculate Exact Due Date]
-    G --> H[Schedule 'Warning' (7 Days Prior)]
-    H --> I[Schedule 'Overdue' (On Due Date)]
+    D --> F["Loop Through Maintenance Items"]
+    F --> G["Calculate Exact Due Date"]
+    G --> H["Schedule 'Warning' (7 Days Prior)"]
+    H --> I["Schedule 'Overdue' (On Due Date)"]
 
     I --> J[Finish]
 ```
